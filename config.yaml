@@ -1,0 +1,17 @@
+# LLM Configuration
+llm:
+  provider: "openai"
+  model_name: "gpt-5.1"
+  temperature: 0.25
+  reasoning: "medium"    # options: "low" | "medium" | "high"
+  max_tokens: -1
+
+# File Paths
+paths:
+  interview_data_dir: "data/interviews"
+  test_questions_file: "data/test_questions_answers.xlsx"
+  output_dir: "outputs"
+
+# MLflow Configuration
+mlflow:
+  experiment_name: "Persona Generation PoC"
