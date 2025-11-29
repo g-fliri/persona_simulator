@@ -4,7 +4,8 @@ llm:
   model_name: "gpt-5.1"
   top_p: 1.00
   temperature: 0.25
-  reasoning: "medium"    # options: "low" | "medium" | "high"
+  reasoning: "medium"    # options: "none | low | medium | high"
+  text: "medium"    # options: "low | medium | high"
   max_tokens: -1
 
 # File Paths

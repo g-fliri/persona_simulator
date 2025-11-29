@@ -1,4 +1,3 @@
-
 from dotenv import load_dotenv
 import os
 import time
@@ -29,7 +28,7 @@ config = load_config(CONFIG_PATH)
 # LLM config
 LLM_PROVIDER = config.get("llm", {}).get("provider", "openai")
 LLM_MODEL_NAME = config.get("llm", {}).get("model_name", "gpt-5.1")
-# LLM_TEMPERATURE = float(config.get("llm", {}).get("temperature", 0.25))
+# LLM_TEMPERATURE = float(config.get("llm", {}).get("temperature", 0.25))    # GPT 5.1 seems to support only reasoning={ "effort": "none | low | medium | high" } and text={ "verbosity": "low | medium | high"} parameters
 # LLM_TOP_P = float(config.get("top_p", {}).get("top_p", 1.00))
 LLM_MAX_TOKENS = int(config.get("llm", {}).get("max_tokens", -1))
 LLM_REASONING = config.get("llm", {}).get("reasoning", None)
@@ -86,9 +85,7 @@ def get_interview_filepath(interview_id: int) -> str:
     print("Full path:", interview_path)
 
     if not os.path.exists(interview_path):
-        raise FileNotFoundError(
-            f"Interview file not found for id={interview_id}. "
-        )
+        raise FileNotFoundError(f"Interview file not found for id={interview_id}. ")
 
     return interview_path
 
@@ -291,6 +288,7 @@ def chat_endpoint(req: ChatRequest) -> ChatResponse:
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
+
 
 # going online
 if __name__ == "__main__":
