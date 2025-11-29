@@ -1,0 +1,6 @@
+fastapi==0.122.0
+mlflow==3.6.0
+openai==2.8.1
+uvicorn==0.38.0
+
+
