@@ -1,3 +1,5 @@
+
+from dotenv import load_dotenv
 import os
 import time
 from typing import Dict, List, Optional
@@ -11,6 +13,7 @@ from openai import OpenAI
 import mlflow
 
 
+load_dotenv()
 CONFIG_PATH = os.getenv("CONFIG_PATH", "config.yaml")
 
 
@@ -26,8 +29,8 @@ config = load_config(CONFIG_PATH)
 # LLM config
 LLM_PROVIDER = config.get("llm", {}).get("provider", "openai")
 LLM_MODEL_NAME = config.get("llm", {}).get("model_name", "gpt-5.1")
-LLM_TEMPERATURE = float(config.get("llm", {}).get("temperature", 0.25))
-LLM_TOP_P = float(config.get(top_p, {}).get("top_p", 1.00))
+# LLM_TEMPERATURE = float(config.get("llm", {}).get("temperature", 0.25))
+# LLM_TOP_P = float(config.get("top_p", {}).get("top_p", 1.00))
 LLM_MAX_TOKENS = int(config.get("llm", {}).get("max_tokens", -1))
 LLM_REASONING = config.get("llm", {}).get("reasoning", None)
 
@@ -39,7 +42,7 @@ INTERVIEWS_DIR = os.path.join(BASE_DATA_DIR, "interviews")
 MLFLOW_EXPERIMENT_NAME = config.get("mlflow", {}).get(
     "experiment_name", "Persona Generation PoC"
 )
-MLFLOW_TRACKING_URI = config.get("mlruns", {}),get("mlruns")
+MLFLOW_TRACKING_URI = config.get("mlruns", {}).get("mlruns")
 
 # System prompt template
 SYSTEM_PROMPT_TEMPLATE = """
@@ -80,10 +83,14 @@ mlflow.set_experiment(MLFLOW_EXPERIMENT_NAME)
 def get_interview_filepath(interview_id: int) -> str:
     base_name = f"consumer_{interview_id}"
     interview_path = os.path.join(INTERVIEWS_DIR, base_name + ".json")
+    print("Full path:", interview_path)
 
-    raise FileNotFoundError(
-        f"Interview file not found for id={interview_id}. "
-    )
+    if not os.path.exists(interview_path):
+        raise FileNotFoundError(
+            f"Interview file not found for id={interview_id}. "
+        )
+
+    return interview_path
 
 
 def load_interview_text(interview_id: int) -> str:
@@ -152,8 +159,8 @@ def call_openai_with_history(
     request_kwargs = {
         "model": model,
         "input": messages,
-        "temperature": LLM_TEMPERATURE,
-        "top_p": LLM_TOP_P
+        # "temperature": LLM_TEMPERATURE,
+        # "top_p": LLM_TOP_P
     }
 
     if LLM_MAX_TOKENS and LLM_MAX_TOKENS > 0:
@@ -292,6 +299,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8000,
+        port=8801,
         reload=True,
     )
