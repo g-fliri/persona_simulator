@@ -27,7 +27,7 @@ paths:
 
 # MLflow Configuration
 mlflow:
-  experiment_name: "PoC_test9_h_l_pr_5_epr_2"
+  experiment_name: "PoC_test11_h_l_pr_5_epr_2"    # test-nr_reasoning_text_prompt-nr_eval-prompt-nr (note: evalualtion model prompt is not yet selectable in this file, it's still to be manually changed in evaluate.py')
   mlruns: "sqlite:///mlflow.db"
 
 
