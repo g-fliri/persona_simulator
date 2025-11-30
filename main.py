@@ -41,7 +41,7 @@ INTERVIEWS_DIR = os.path.join(BASE_DATA_DIR, "interviews")
 MLFLOW_EXPERIMENT_NAME = config.get("mlflow", {}).get(
     "experiment_name", "Persona Generation PoC"
 )
-MLFLOW_TRACKING_URI = config.get("mlruns", {}).get("mlruns")
+MLFLOW_TRACKING_URI = config.get("mlflow", {}).get("mlruns")
 
 # System prompt template
 SYSTEM_PROMPT_TEMPLATE = """
@@ -78,18 +78,17 @@ mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
 mlflow.set_experiment(MLFLOW_EXPERIMENT_NAME)
 
 
-def get_interview_filepath(interview_id: int) -> str:
-    base_name = f"consumer_{interview_id}"
+def get_interview_filepath(consumer_id: int) -> str:
+    base_name = f"consumer_{consumer_id}"
     interview_path = os.path.join(INTERVIEWS_DIR, base_name + ".json")
-    print("Full path:", interview_path)
 
     if not os.path.exists(interview_path):
-        raise FileNotFoundError(f"Interview file not found for id={interview_id}. ")
+        raise FileNotFoundError(f"Interview file not found for id={consumer_id}. ")
 
     return interview_path
 
 
-def load_interview_text(interview_id: int) -> str:
+def load_interview_text(consumer_id: int) -> str:
     """
     Loads the content of an interview file.
 
@@ -99,15 +98,15 @@ def load_interview_text(interview_id: int) -> str:
 
     Interview is not parsed, it is directly injected into the system prompt.
     """
-    filepath = get_interview_filepath(interview_id)
+    filepath = get_interview_filepath(consumer_id)
     with open(filepath, "r") as f:
         text = f.read().strip()
 
     return text
 
 
-def build_system_prompt(interview_id: int) -> str:
-    interview_text = load_interview_text(interview_id)
+def build_system_prompt(consumer_id: int) -> str:
+    interview_text = load_interview_text(consumer_id)
     return SYSTEM_PROMPT_TEMPLATE.format(interview=interview_text)
 
 
@@ -121,15 +120,17 @@ CONVERSATIONS: Dict[str, List[ConversationMessage]] = {}
 class ChatRequest(BaseModel):
     user_message: str
     conversation_id: Optional[str] = None  # if None => start new conversation
-    interview_id: int = 1  # which interview persona to use
+    consumer_id: int = 1  # which interview persona to use
+    test_question_id: Optional[str] = None
+    expected_answer: Optional[str] = None
 
 
 class ChatResponse(BaseModel):
     conversation_id: str
     reply: str
     model: str
-    interview_id: int
-    usage: Optional[Dict[str, int]] = None  # token usage etc.
+    consumer_id: int
+    usage: Optional[Dict[str, int]] = None
 
 
 def call_openai_with_history(
@@ -160,10 +161,8 @@ def call_openai_with_history(
     }
 
     if LLM_MAX_TOKENS and LLM_MAX_TOKENS > 0:
-        # For Responses API the parameter is max_output_tokens
         request_kwargs["max_output_tokens"] = LLM_MAX_TOKENS
 
-    # Optional reasoning effort
     if LLM_REASONING in {"low", "medium", "high"}:
         request_kwargs["reasoning"] = {"effort": LLM_REASONING}
 
@@ -180,13 +179,13 @@ app = FastAPI(title="Character Impersonation PoC API")
 def chat_endpoint(req: ChatRequest) -> ChatResponse:
     """
     Single endpoint:
-    - Takes user_message + (optional) conversation_id + interview_id
+    - Takes user_message + (optional) conversation_id + consumer_id
     - Maintains multi-turn conversation in memory
     - Builds system prompt from interview file
     - Logs everything to MLflow as a single run per call
     """
     try:
-        system_prompt = build_system_prompt(req.interview_id)
+        system_prompt = build_system_prompt(req.consumer_id)
     except FileNotFoundError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -194,28 +193,10 @@ def chat_endpoint(req: ChatRequest) -> ChatResponse:
     conversation_id = req.conversation_id or str(uuid.uuid4())
     history = CONVERSATIONS.get(conversation_id, [])
 
-    # Start timing for latency metric
     start_time = time.time()
 
     # Start MLflow run
     with mlflow.start_run(run_name=f"conversation_{conversation_id}"):
-        # Log high-level parameters
-        mlflow.log_params(
-            {
-                "model": OPENAI_MODEL,
-                "conversation_id": conversation_id,
-                "interview_id": req.interview_id,
-                "system_prompt_length": len(system_prompt),
-            }
-        )
-
-        # Log the raw input message
-        mlflow.log_text(
-            f"User message:\n{req.user_message}\n",
-            artifact_file="input.txt",
-        )
-
-        # Call OpenAI API
         response = call_openai_with_history(
             user_message=req.user_message,
             history=history,
@@ -225,7 +206,6 @@ def chat_endpoint(req: ChatRequest) -> ChatResponse:
 
         latency = time.time() - start_time
 
-        # Extract output text
         reply_text = getattr(response, "output_text", None)
         if reply_text is None:
             try:
@@ -233,7 +213,6 @@ def chat_endpoint(req: ChatRequest) -> ChatResponse:
             except Exception:
                 reply_text = "<no text output>"
 
-        # Extract usage if available
         usage_dict = None
         usage = getattr(response, "usage", None)
         if usage is not None:
@@ -241,6 +220,22 @@ def chat_endpoint(req: ChatRequest) -> ChatResponse:
             usage_dict = {
                 k: int(v) for k, v in raw_usage.items() if isinstance(v, (int, float))
             }
+
+        params = {
+            "model": OPENAI_MODEL,
+            "conversation_id": conversation_id,
+            "consumer_id": req.consumer_id,
+            "system_prompt_length": len(system_prompt),
+            "user_message": req.user_message,
+            "assistant_reply": reply_text,
+        }
+
+        if getattr(req, "test_answer_id", None) is not None:
+            params["test_answer_id"] = req.test_answer_id
+        if getattr(req, "expected_answer", None) is not None:
+            params["expected_answer"] = req.expected_answer
+
+        mlflow.log_params(params)
 
         # Log metrics to MLflow
         mlflow.log_metric("latency_seconds", latency)
@@ -270,6 +265,11 @@ def chat_endpoint(req: ChatRequest) -> ChatResponse:
             artifact_file="transcript.txt",
         )
 
+        mlflow.log_text(
+            f"User message:\n{req.user_message}\n",
+            artifact_file="input.txt",
+        )
+
     # Update in-memory conversation
     history.append({"role": "user", "content": req.user_message})
     history.append({"role": "assistant", "content": reply_text})
@@ -279,7 +279,7 @@ def chat_endpoint(req: ChatRequest) -> ChatResponse:
         conversation_id=conversation_id,
         reply=reply_text,
         model=OPENAI_MODEL,
-        interview_id=req.interview_id,
+        consumer_id=req.consumer_id,
         usage=usage_dict,
     )
 

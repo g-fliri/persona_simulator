@@ -17,6 +17,6 @@ paths:
 # MLflow Configuration
 mlflow:
   experiment_name: "Persona Generation PoC"
-  mlruns: "mlruns"
+  mlruns: "sqlite:///mlflow.db"
 
 
