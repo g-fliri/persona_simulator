@@ -12,7 +12,7 @@ Using the evaluation criteria, measure how closely the digital personas’ respo
 
 
 
-## Run
+## Run:
 
 Type 'python main.py' from main folder to launch the server app. You can then open the frontend typing 'localhost:8808' in your web browser address bar. Ask questions and have fun!
 
@@ -26,6 +26,6 @@ Altenatively, you can run from bash 'python mlflow_exp_summarizer.py' to have a 
 
 
 
-## notes:
+### Notes:
 
 project formatted with ruff
