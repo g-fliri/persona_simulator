@@ -134,7 +134,7 @@ class ChatRequest(BaseModel):
     expected_answer: Optional[str] = None
     id: Optional[int] = None
     reasoning_effort: Optional[str] = None
-    text_verbosity: Optional[str] = None 
+    text_verbosity: Optional[str] = None
 
 
 class ChatResponse(BaseModel):

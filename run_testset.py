@@ -59,7 +59,7 @@ def main_script() -> None:
 
         payload = {
             "user_message": question,
-            "conversation_id": None, 
+            "conversation_id": None,
             "consumer_id": consumer_id,
             "expected_answer": expected_answer,
             "test_question_id": question_id,

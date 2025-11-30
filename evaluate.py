@@ -157,7 +157,7 @@ def evaluate_all(force: bool = False) -> None:
     """
     mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
     mlflow.set_experiment(EXPERIMENT_NAME)
-    
+
     # temporary for debugging
     mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
     print("EVAL: tracking URI =", mlflow.get_tracking_uri())
@@ -165,7 +165,6 @@ def evaluate_all(force: bool = False) -> None:
     exp = mlflow.get_experiment_by_name(EXPERIMENT_NAME)
     print("EVAL: experiment name =", EXPERIMENT_NAME, "id =", exp.experiment_id)
     mlflow.set_experiment(EXPERIMENT_NAME)
-
 
     runs_df = mlflow.search_runs(
         experiment_names=[EXPERIMENT_NAME],
