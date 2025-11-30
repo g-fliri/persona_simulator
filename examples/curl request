@@ -1,0 +1,7 @@
+curl -X POST http://localhost:8801/chat \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user_message": "Introduce yourself in two sentences.",
+    "interview_id": 1
+  }'
+
