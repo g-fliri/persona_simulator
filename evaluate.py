@@ -158,7 +158,6 @@ def evaluate_all(force: bool = False) -> None:
     mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
     mlflow.set_experiment(EXPERIMENT_NAME)
 
-    # temporary for debugging
     mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
     print("EVAL: tracking URI =", mlflow.get_tracking_uri())
 

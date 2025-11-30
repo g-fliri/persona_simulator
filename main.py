@@ -83,15 +83,6 @@ client = OpenAI(api_key=OPENAI_API_KEY)
 mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
 mlflow.set_experiment(MLFLOW_EXPERIMENT_NAME)
 
-# temporary for debugging
-mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
-print("MAIN: tracking URI =", mlflow.get_tracking_uri())
-
-exp = mlflow.get_experiment_by_name(MLFLOW_EXPERIMENT_NAME)
-print("MAIN: experiment name =", MLFLOW_EXPERIMENT_NAME, "id =", exp.experiment_id)
-mlflow.set_experiment(MLFLOW_EXPERIMENT_NAME)
-
-
 def get_interview_filepath(consumer_id: int) -> str:
     base_name = f"consumer_{consumer_id}"
     interview_path = os.path.join(INTERVIEWS_DIR, base_name + ".json")
@@ -304,6 +295,11 @@ def health_check():
     return {"status": "ok"}
 
 
+# Serve the SPA frontend
+from fastapi.staticfiles import StaticFiles
+
+app.mount("/", StaticFiles(directory="static", html=True), name="static")
+
 # going online
 if __name__ == "__main__":
     import uvicorn
@@ -311,6 +307,6 @@ if __name__ == "__main__":
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8801,
+        port=8808,
         reload=True,
     )
