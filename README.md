@@ -11,4 +11,5 @@ Design clear evaluation criteria for open-ended. Only evaluate open-ended questi
 Using the evaluation criteria, measure how closely the digital personas’ responses align with real human answers.
 
 notes:
+main.py needs an API key to make requests; create an .env file in the project directory with a variable OPENAI_API_KEY=<your_openAI_API_key>
 project formatted with ruff
