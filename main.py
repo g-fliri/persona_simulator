@@ -83,6 +83,14 @@ client = OpenAI(api_key=OPENAI_API_KEY)
 mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
 mlflow.set_experiment(MLFLOW_EXPERIMENT_NAME)
 
+# temporary for debugging
+mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
+print("MAIN: tracking URI =", mlflow.get_tracking_uri())
+
+exp = mlflow.get_experiment_by_name(MLFLOW_EXPERIMENT_NAME)
+print("MAIN: experiment name =", MLFLOW_EXPERIMENT_NAME, "id =", exp.experiment_id)
+mlflow.set_experiment(MLFLOW_EXPERIMENT_NAME)
+
 
 def get_interview_filepath(consumer_id: int) -> str:
     base_name = f"consumer_{consumer_id}"
@@ -117,7 +125,7 @@ ConversationMessage = Dict[str, str]  # {"role": "user"/"assistant", "content": 
 CONVERSATIONS: Dict[str, List[ConversationMessage]] = {}
 
 
-# fastAPI classes
+# fastAPI
 class ChatRequest(BaseModel):
     user_message: str
     conversation_id: Optional[str] = None  # if None => start new conversation
@@ -125,6 +133,8 @@ class ChatRequest(BaseModel):
     test_question_id: Optional[str] = None
     expected_answer: Optional[str] = None
     id: Optional[int] = None
+    reasoning_effort: Optional[str] = None
+    text_verbosity: Optional[str] = None 
 
 
 class ChatResponse(BaseModel):
@@ -140,6 +150,8 @@ def call_openai_with_history(
     history: List[ConversationMessage],
     system_prompt: str,
     model: str = OPENAI_MODEL,
+    reasoning_effort: Optional[str] = None,
+    text_verbosity: Optional[str] = None,
 ) -> object:
     messages = (
         [{"role": "system", "content": system_prompt}]
@@ -188,6 +200,8 @@ def chat_endpoint(req: ChatRequest) -> ChatResponse:
     # Create or reuse conversation_id
     conversation_id = req.conversation_id or str(uuid.uuid4())
     history = CONVERSATIONS.get(conversation_id, [])
+    reasoning_effort = req.reasoning_effort or LLM_REASONING
+    text_verbosity = req.text_verbosity or LLM_VERBOSITY
 
     start_time = time.time()
 

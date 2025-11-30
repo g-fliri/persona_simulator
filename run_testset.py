@@ -25,7 +25,7 @@ SHEET_NAME: Any = "questionnaire-history"
 
 
 def to_consumer_id(user_id: Any) -> int:
-    # user_id is always numeric per your data
+    # user_id is always numeric (probably this is redundant)
     if isinstance(user_id, str):
         user_id = user_id.strip()
     return int(user_id)
@@ -38,20 +38,18 @@ def main_script() -> None:
     # Load Excel
     df = pd.read_excel(EXCEL_PATH, sheet_name=SHEET_NAME)
 
-    # We now REQUIRE id and question_id
     required_cols = {"id", "question_id", "question", "answer", "user_id"}
     missing = required_cols - set(df.columns)
     if missing:
         raise RuntimeError(f"Missing required columns in Excel: {missing}")
 
-    # Create a TestClient for your FastAPI app
+    # create a TestClient for main app
     client = TestClient(main.app)
 
     print(f"Loaded {len(df)} rows from {EXCEL_PATH}")
     print("Sending them to /chat...\n")
 
     for idx, row in df.iterrows():
-        # Extract row fields
         row_id = int(row["id"])
         question_id = str(row["question_id"])
         question = str(row["question"])
@@ -61,7 +59,7 @@ def main_script() -> None:
 
         payload = {
             "user_message": question,
-            "conversation_id": None,  # new conversation for each test row
+            "conversation_id": None, 
             "consumer_id": consumer_id,
             "expected_answer": expected_answer,
             "test_question_id": question_id,

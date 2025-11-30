@@ -5,9 +5,9 @@ llm:
   top_p: 1.00
   temperature: 0.25
   reasoning: "medium"    # options: "none | low | medium | high"
-  text: "medium"    # options: "low | medium | high"
+  text: "low"    # output verbosity; options: "low | medium | high"
   max_tokens: -1
-  prompt_file: "prompt_1"
+  prompt_file: "prompt_4"
 
 embedding_model:
   provider: "openai"
@@ -27,7 +27,7 @@ paths:
 
 # MLflow Configuration
 mlflow:
-  experiment_name: "Persona Generation PoC"
+  experiment_name: "PoC_test7_m_l_prompt_4"
   mlruns: "sqlite:///mlflow.db"
 
 

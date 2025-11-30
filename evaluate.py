@@ -39,7 +39,7 @@ EXPERIMENT_NAME = main.MLFLOW_EXPERIMENT_NAME
 MLFLOW_TRACKING_URI = main.MLFLOW_TRACKING_URI
 
 
-# Reuse the client from main if available, otherwise create a new one
+# reuse the client from main if available, otherwise create a new one
 client: OpenAI = getattr(main, "client", OpenAI(api_key=os.getenv("OPENAI_API_KEY")))
 
 
@@ -79,21 +79,12 @@ def judge_run(
     Returns a dict or None on failure.
     """
     prompt = f"""
-You are evaluating a chatbot that impersonates a persona based on an interview.
+You are evaluating how well a chatbot response matches a real customer’s style and content.
 
-You will be given:
-- The persona interview
-- The user's question
-- The expected answer
-- The model's answer
-
-(Mind that the persona interview and the chatbot conversation use different naming conventions.)
-
-Evaluate the chatbot answer on:
-
-1. Content Accuracy (0–5): How similar is the model's answer to the expected answer in meaning, ignoring phrasing differences?
-2. Persona Fidelity (0–5): How well does the model's answer match the persona's tone, personality, and worldview implied by the interview?
-3. Instruction Following (0–5): Does the model answer in the first person, stay in character, and avoid mentioning that it is an AI?
+You will receive:
+- The original interview with the customer.
+- A user question.
+- The chatbot’s answer.
 
 Persona interview:
 {persona_interview}
@@ -106,6 +97,19 @@ Expected answer:
 
 Model answer:
 {assistant_reply}
+
+Your job:
+- Judge how closely the chatbot’s answer matches the customer’s style, tone, and level of detail from the interview.
+- Punish responses that sound like a generic AI (markdown, bullet points, long explanations, “as an AI”).
+- Reward responses that sound like a casual message from the interviewed person.
+
+Scoring (0–10, integers only):
+
+- 0–2: Completely wrong voice or content; clearly generic AI; uses bullet points or markdown; or contradicts the interview.
+- 3–4: Partially related content but clearly AI-like in style, overly formal, or much longer/shorter than the interview style.
+- 5–6: Content mostly consistent with the persona but style is off (too formal, too generic, too explanatory).
+- 7–8: Good match for both content and style with only minor mismatches.
+- 9–10: Very strong match; could plausibly have been written by the interviewed person in a chat.
 
 Respond ONLY with a JSON object of the form:
 {{
@@ -121,7 +125,7 @@ Respond ONLY with a JSON object of the form:
         input=[{"role": "user", "content": prompt}],
     )
 
-    # Try to extract plain text from the response (mirrors logic in main.py)
+    # try to extract plain text from the response
     try:
         text = getattr(resp, "output_text", None)
         if text is None:
@@ -131,20 +135,16 @@ Respond ONLY with a JSON object of the form:
 
     text = text.strip()
 
-    # The model should return JSON, but we guard just in case.
+    # The model should return JSON, checking for it
     try:
         data = json.loads(text)
         return data
     except json.JSONDecodeError:
-        # You may want to log 'text' somewhere if debugging
         return None
 
 
 def run_already_evaluated(run: Run) -> bool:
-    """
-    Check if we've already added evaluation metrics to this run.
-    You can change the condition (e.g., check for just one metric).
-    """
+    # check if evaluation metrics already added to this run.
     metrics = run.data.metrics
     return "semantic_similarity" in metrics and "content_accuracy" in metrics
 
@@ -152,14 +152,20 @@ def run_already_evaluated(run: Run) -> bool:
 # evaluatuon routine
 def evaluate_all(force: bool = False) -> None:
     """
-    Iterate over all runs in the configured MLflow experiment and add:
-      - semantic_similarity (embedding similarity)
-      - content_accuracy, persona_fidelity, instruction_following
-      - overall_eval_score
-    Skips runs that are already evaluated (unless force=True).
+    iterate over all runs in the configured MLflow experiment
+    Skips runs that are already evaluated (unless force=True)
     """
     mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
     mlflow.set_experiment(EXPERIMENT_NAME)
+    
+    # temporary for debugging
+    mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
+    print("EVAL: tracking URI =", mlflow.get_tracking_uri())
+
+    exp = mlflow.get_experiment_by_name(EXPERIMENT_NAME)
+    print("EVAL: experiment name =", EXPERIMENT_NAME, "id =", exp.experiment_id)
+    mlflow.set_experiment(EXPERIMENT_NAME)
+
 
     runs_df = mlflow.search_runs(
         experiment_names=[EXPERIMENT_NAME],
@@ -225,7 +231,7 @@ def evaluate_all(force: bool = False) -> None:
                 mlflow.log_metric("semantic_similarity", similarity)
 
             if judge_scores is not None:
-                # Make sure they're numbers
+                # make sure they're numbers
                 ca = int(judge_scores.get("content_accuracy", 0))
                 pf = int(judge_scores.get("persona_fidelity", 0))
                 ifm = int(judge_scores.get("instruction_following", 0))
@@ -235,7 +241,7 @@ def evaluate_all(force: bool = False) -> None:
                 mlflow.log_metric("instruction_following", ifm)
 
                 # overall score
-                overall = 0.5 * ca + 0.3 * pf + 0.2 * ifm
+                overall = 0.5 * ca + 0.4 * pf + 0.1 * ifm
                 mlflow.log_metric("overall_eval_score", overall)
 
                 # optional: log the judge's comment as a param or artifact
@@ -247,5 +253,5 @@ def evaluate_all(force: bool = False) -> None:
 
 
 if __name__ == "__main__":
-    # Set force=True if you want to recompute metrics for all runs.
+    # Set force=True to recompute metrics for all runs
     evaluate_all(force=False)
