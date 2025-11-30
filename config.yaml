@@ -4,10 +4,10 @@ llm:
   model_name: "gpt-5.1"
   top_p: 1.00
   temperature: 0.25
-  reasoning: "medium"    # options: "none | low | medium | high"
+  reasoning: "high"    # options: "none | low | medium | high"
   text: "low"    # output verbosity; options: "low | medium | high"
   max_tokens: -1
-  prompt_file: "prompt_4"
+  prompt_file: "prompt_5"
 
 embedding_model:
   provider: "openai"
@@ -27,7 +27,7 @@ paths:
 
 # MLflow Configuration
 mlflow:
-  experiment_name: "PoC_test7_m_l_prompt_4"
+  experiment_name: "PoC_test9_h_l_pr_5_epr_2"
   mlruns: "sqlite:///mlflow.db"
 
 
