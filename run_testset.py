@@ -21,7 +21,7 @@ def load_config(path: str) -> dict:
 config = load_config(CONFIG_PATH)
 
 EXCEL_PATH = config.get("paths", {}).get("test_questions_file")
-SHEET_NAME: Any = "Sheet1"
+SHEET_NAME: Any = "questionnaire-history"
 
 
 def to_consumer_id(user_id: Any) -> int:
@@ -61,7 +61,7 @@ def main_script() -> None:
 
         payload = {
             "user_message": question,
-            "conversation_id": None,      # new conversation for each test row
+            "conversation_id": None,  # new conversation for each test row
             "consumer_id": consumer_id,
             "expected_answer": expected_answer,
             "test_question_id": question_id,
@@ -94,4 +94,3 @@ def main_script() -> None:
 
 if __name__ == "__main__":
     main_script()
-

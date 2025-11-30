@@ -49,6 +49,7 @@ MLFLOW_EXPERIMENT_NAME = config.get("mlflow", {}).get(
 )
 MLFLOW_TRACKING_URI = config.get("mlflow", {}).get("mlruns")
 
+
 # Load system prompt template
 def load_prompt_template_from_file(prompt_name: str) -> str:
     """Load a system prompt template from the prompts folder."""
@@ -57,6 +58,7 @@ def load_prompt_template_from_file(prompt_name: str) -> str:
         raise RuntimeError(f"Prompt file not found at {prompt_path}")
     with open(prompt_path, "r", encoding="utf-8") as f:
         return f.read().strip()
+
 
 SYSTEM_PROMPT_TEMPLATE = load_prompt_template_from_file(PROMPT_NAME)
 
@@ -228,7 +230,7 @@ def chat_endpoint(req: ChatRequest) -> ChatResponse:
         }
 
         if getattr(req, "test_question_id", None) is not None:
-            params["test_question_id"] = req.test_answer_id
+            params["test_question_id"] = req.test_question_id
         if getattr(req, "expected_answer", None) is not None:
             params["expected_answer"] = req.expected_answer
         if getattr(req, "id", None) is not None:
