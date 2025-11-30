@@ -12,4 +12,5 @@ Using the evaluation criteria, measure how closely the digital personas’ respo
 
 notes:
 main.py needs an API key to make requests; create an .env file in the project directory with a variable OPENAI_API_KEY=<your_openAI_API_key>
+run from bash 'mlflow ui --backend-store-uri sqlite:///mlflow.db' to access MLflow from web server
 project formatted with ruff
