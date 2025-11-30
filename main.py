@@ -47,7 +47,6 @@ MLFLOW_TRACKING_URI = config.get("mlruns", {}).get("mlruns")
 SYSTEM_PROMPT_TEMPLATE = """
 You are an AI that is impersonating a character based on the following interview.
 
-INTERVIEW:
 {interview}
 
 You must:
