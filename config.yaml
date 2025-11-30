@@ -7,9 +7,20 @@ llm:
   reasoning: "medium"    # options: "none | low | medium | high"
   text: "medium"    # options: "low | medium | high"
   max_tokens: -1
+  prompt_file: "prompt_1"
+
+embedding_model:
+  provider: "openai"
+  model_name: "text-embedding-3-large"
+
+eval_model:
+  provider: "openai"
+  model_name: "gpt-5.1"
+  reasoning: "high"
 
 # File Paths
 paths:
+  prompts_dir: "prompts"
   interview_data_dir: "data"
   test_questions_file: "data/test_questions_answers.xlsx"
   output_dir: "outputs"

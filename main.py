@@ -32,10 +32,16 @@ LLM_MODEL_NAME = config.get("llm", {}).get("model_name", "gpt-5.1")
 # LLM_TOP_P = float(config.get("top_p", {}).get("top_p", 1.00))
 LLM_MAX_TOKENS = int(config.get("llm", {}).get("max_tokens", -1))
 LLM_REASONING = config.get("llm", {}).get("reasoning", None)
+LLM_VERBOSITY = config.get("llm", {}).get("text", {})
+
 
 # Paths
+PROMPTS_DIR = config.get("paths", {}).get("prompts_dir", "prompts")
 BASE_DATA_DIR = config.get("paths", {}).get("interview_data_dir", "data")
 INTERVIEWS_DIR = os.path.join(BASE_DATA_DIR, "interviews")
+
+# Prompt of choice
+PROMPT_NAME = config.get("llm", {}).get("prompt_file")
 
 # MLflow
 MLFLOW_EXPERIMENT_NAME = config.get("mlflow", {}).get(
@@ -43,18 +49,16 @@ MLFLOW_EXPERIMENT_NAME = config.get("mlflow", {}).get(
 )
 MLFLOW_TRACKING_URI = config.get("mlflow", {}).get("mlruns")
 
-# System prompt template
-SYSTEM_PROMPT_TEMPLATE = """
-You are an AI that is impersonating a character based on the following interview.
+# Load system prompt template
+def load_prompt_template_from_file(prompt_name: str) -> str:
+    """Load a system prompt template from the prompts folder."""
+    prompt_path = os.path.join(PROMPTS_DIR, prompt_name)
+    if not os.path.exists(prompt_path):
+        raise RuntimeError(f"Prompt file not found at {prompt_path}")
+    with open(prompt_path, "r", encoding="utf-8") as f:
+        return f.read().strip()
 
-{interview}
-
-You must:
-- Answer strictly as this character, in the first person.
-- Maintain a consistent tone and personality across the whole conversation.
-- If the user asks something unrelated to the interview, answer as the character would.
-- Never break character and never mention that you are an AI model.
-""".strip()
+SYSTEM_PROMPT_TEMPLATE = load_prompt_template_from_file(PROMPT_NAME)
 
 # Env overrides
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -91,11 +95,6 @@ def get_interview_filepath(consumer_id: int) -> str:
 def load_interview_text(consumer_id: int) -> str:
     """
     Loads the content of an interview file.
-
-    Expected format (simplified):
-        INTERVIEW:
-        [{<dictionary of assistant/user multi-turn conversation>}]
-
     Interview is not parsed, it is directly injected into the system prompt.
     """
     filepath = get_interview_filepath(consumer_id)
@@ -123,6 +122,7 @@ class ChatRequest(BaseModel):
     consumer_id: int = 1  # which interview persona to use
     test_question_id: Optional[str] = None
     expected_answer: Optional[str] = None
+    id: Optional[int] = None
 
 
 class ChatResponse(BaseModel):
@@ -139,35 +139,29 @@ def call_openai_with_history(
     system_prompt: str,
     model: str = OPENAI_MODEL,
 ) -> object:
-    """
-    Calls the OpenAI Responses API with:
-    - system message containing the interview
-    - previous conversation messages
-    - current user message
-    - parameters read from config.yaml
-    """
     messages = (
         [{"role": "system", "content": system_prompt}]
         + history
         + [{"role": "user", "content": user_message}]
     )
 
-    # Build kwargs to avoid sending None/invalid values
     request_kwargs = {
         "model": model,
         "input": messages,
-        # "temperature": LLM_TEMPERATURE,
-        # "top_p": LLM_TOP_P
     }
 
     if LLM_MAX_TOKENS and LLM_MAX_TOKENS > 0:
         request_kwargs["max_output_tokens"] = LLM_MAX_TOKENS
 
+    # reasoning
     if LLM_REASONING in {"low", "medium", "high"}:
         request_kwargs["reasoning"] = {"effort": LLM_REASONING}
 
-    response = client.responses.create(**request_kwargs)
+    # text verbosity
+    if LLM_VERBOSITY in {"low", "medium", "high"}:
+        request_kwargs["text"] = {"verbosity": LLM_VERBOSITY}
 
+    response = client.responses.create(**request_kwargs)
     return response
 
 
@@ -228,12 +222,17 @@ def chat_endpoint(req: ChatRequest) -> ChatResponse:
             "system_prompt_length": len(system_prompt),
             "user_message": req.user_message,
             "assistant_reply": reply_text,
+            "prompt_name": PROMPT_NAME,
+            "reasoning_effort": LLM_REASONING or "",
+            "text_verbosity": LLM_VERBOSITY or "",
         }
 
-        if getattr(req, "test_answer_id", None) is not None:
-            params["test_answer_id"] = req.test_answer_id
+        if getattr(req, "test_question_id", None) is not None:
+            params["test_question_id"] = req.test_answer_id
         if getattr(req, "expected_answer", None) is not None:
             params["expected_answer"] = req.expected_answer
+        if getattr(req, "id", None) is not None:
+            params["id"] = req.id
 
         mlflow.log_params(params)
 
