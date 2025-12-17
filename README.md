@@ -1,4 +1,4 @@
-# GenAI assignment
+# Persona Simulator
 
 ## Design and prototype a GenAI-based solution that creates realistic digital personas from human interviews.
 Represent each human consumer using the interview data.
