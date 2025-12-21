@@ -135,7 +135,7 @@ Respond ONLY with a JSON object of the form:
 
     text = text.strip()
 
-    # The model should return JSON, checking for it
+    # the model should return JSON, checking for it
     try:
         data = json.loads(text)
         return data
@@ -152,23 +152,17 @@ def run_already_evaluated(run: Run) -> bool:
 # evaluatuon routine
 def evaluate_all(force: bool = False) -> None:
     """
-    iterate over all runs in the configured MLflow experiment
-    Skips runs that are already evaluated (unless force=True)
+    Iterate over all runs in the configured MLflow experiment.
+    Skips runs that are already evaluated (unless force=True).
     """
     mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
     mlflow.set_experiment(EXPERIMENT_NAME)
 
-    mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
     print("EVAL: tracking URI =", mlflow.get_tracking_uri())
-
     exp = mlflow.get_experiment_by_name(EXPERIMENT_NAME)
     print("EVAL: experiment name =", EXPERIMENT_NAME, "id =", exp.experiment_id)
-    mlflow.set_experiment(EXPERIMENT_NAME)
 
-    runs_df = mlflow.search_runs(
-        experiment_names=[EXPERIMENT_NAME],
-    )
-
+    runs_df = mlflow.search_runs(experiment_names=[EXPERIMENT_NAME])
     print(f"Found {len(runs_df)} runs in experiment '{EXPERIMENT_NAME}'.")
 
     for _, row in runs_df.iterrows():
@@ -191,7 +185,7 @@ def evaluate_all(force: bool = False) -> None:
 
         print(f"Evaluating run {run_id} ...")
 
-        # Load persona interview text
+        # load persona interview text
         try:
             consumer_id = int(consumer_id_str)
         except ValueError:
@@ -208,7 +202,7 @@ def evaluate_all(force: bool = False) -> None:
             )
             continue
 
-        # 1) Embedding similarity
+        # 1) embedding similarity
         try:
             similarity = compute_embedding_similarity(expected_answer, assistant_reply)
         except Exception as e:
@@ -223,7 +217,7 @@ def evaluate_all(force: bool = False) -> None:
             assistant_reply=assistant_reply,
         )
 
-        # Log metrics back into the same run
+        # log metrics back into the same run
         with mlflow.start_run(run_id=run_id):
             if similarity is not None:
                 mlflow.log_metric("semantic_similarity", similarity)
@@ -251,5 +245,5 @@ def evaluate_all(force: bool = False) -> None:
 
 
 if __name__ == "__main__":
-    # Set force=True to recompute metrics for all runs
+    # set force=True to recompute metrics for all runs
     evaluate_all(force=False)

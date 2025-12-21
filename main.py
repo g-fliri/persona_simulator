@@ -25,6 +25,7 @@ def load_config(path: str) -> dict:
 
 config = load_config(CONFIG_PATH)
 
+
 # LLM config
 LLM_PROVIDER = config.get("llm", {}).get("provider", "openai")
 LLM_MODEL_NAME = config.get("llm", {}).get("model_name", "gpt-5.1")
@@ -32,8 +33,7 @@ LLM_MODEL_NAME = config.get("llm", {}).get("model_name", "gpt-5.1")
 # LLM_TOP_P = float(config.get("top_p", {}).get("top_p", 1.00))
 LLM_MAX_TOKENS = int(config.get("llm", {}).get("max_tokens", -1))
 LLM_REASONING = config.get("llm", {}).get("reasoning", None)
-LLM_VERBOSITY = config.get("llm", {}).get("text", {})
-
+LLM_VERBOSITY = config.get("llm", {}).get("text", None)
 
 # Paths
 PROMPTS_DIR = config.get("paths", {}).get("prompts_dir", "prompts")
@@ -51,7 +51,7 @@ MLFLOW_TRACKING_URI = config.get("mlflow", {}).get("mlruns")
 
 
 # Load system prompt template
-def load_prompt_template_from_file(prompt_name: str) -> str:
+def load_prompt_from_file(prompt_name: str) -> str:
     """Load a system prompt template from the prompts folder."""
     prompt_path = os.path.join(PROMPTS_DIR, prompt_name)
     if not os.path.exists(prompt_path):
@@ -60,13 +60,14 @@ def load_prompt_template_from_file(prompt_name: str) -> str:
         return f.read().strip()
 
 
-SYSTEM_PROMPT_TEMPLATE = load_prompt_template_from_file(PROMPT_NAME)
+SYSTEM_PROMPT = load_prompt_from_file(PROMPT_NAME)
 
 # Env overrides
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", LLM_MODEL_NAME)
 MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", MLFLOW_TRACKING_URI)
 SYSTEM_PROMPT_TEMPLATE = os.getenv("SYSTEM_PROMPT_TEMPLATE", SYSTEM_PROMPT_TEMPLATE)
+
 
 if LLM_PROVIDER.lower() != "openai":
     raise RuntimeError(
@@ -76,12 +77,14 @@ if LLM_PROVIDER.lower() != "openai":
 if not OPENAI_API_KEY:
     raise RuntimeError("OPENAI_API_KEY environment variable is not set.")
 
+
 # Initialize OpenAI client
 client = OpenAI(api_key=OPENAI_API_KEY)
 
 # Configure MLflow
 mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
 mlflow.set_experiment(MLFLOW_EXPERIMENT_NAME)
+
 
 def get_interview_filepath(consumer_id: int) -> str:
     base_name = f"consumer_{consumer_id}"
@@ -107,7 +110,7 @@ def load_interview_text(consumer_id: int) -> str:
 
 def build_system_prompt(consumer_id: int) -> str:
     interview_text = load_interview_text(consumer_id)
-    return SYSTEM_PROMPT_TEMPLATE.format(interview=interview_text)
+    return SYSTEM_PROMPT.format(interview=interview_text)
 
 
 # In-memory conversation store for PoC (not for production)
@@ -159,7 +162,7 @@ def call_openai_with_history(
         request_kwargs["max_output_tokens"] = LLM_MAX_TOKENS
 
     # reasoning
-    if LLM_REASONING in {"low", "medium", "high"}:
+    if LLM_REASONING in {"none", "low", "medium", "high", "xhigh"}:
         request_kwargs["reasoning"] = {"effort": LLM_REASONING}
 
     # text verbosity
@@ -232,7 +235,7 @@ def chat_endpoint(req: ChatRequest) -> ChatResponse:
             "prompt_name": PROMPT_NAME,
             "reasoning_effort": LLM_REASONING or "",
             "text_verbosity": LLM_VERBOSITY or "",
-        }
+        }  # reasoning tokens should be tracked as well?
 
         if getattr(req, "test_question_id", None) is not None:
             params["test_question_id"] = req.test_question_id
