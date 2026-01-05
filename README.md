@@ -17,7 +17,7 @@ Using the evaluation criteria, measure how closely the digital personas’ respo
 Type 'python main.py' from main folder to launch the server app. You can then open the frontend typing 'localhost:8808' in your web browser address bar. Ask questions and have fun!
 Note: you need to provide a valid OpenAI API key to make the app work. Just add a .env file to the main directory and put 'OPENAI_API_KEY=<your-API-key-here>' in it.
 
-Type 'python run_testset.py' to generate test runs on the excel dataset in 'data' folder'.
+Type 'python run_testset.py' to generate test runs on the excel dataset in 'data' folder.
 
 After running the testset, type 'python evaluate.py' to evaluate the generated replies against the expected answers in the 'data' folder. Evaluation metrics (cosine similarity and LLM-as-judge) are available in MLflow.
 
