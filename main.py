@@ -146,6 +146,7 @@ def call_openai_with_history(
     model: str = OPENAI_MODEL,
     reasoning_effort: Optional[str] = None,
     text_verbosity: Optional[str] = None,
+    store=False    # no memorization OpenAI-side
 ) -> object:
     messages = (
         [{"role": "system", "content": system_prompt}]
